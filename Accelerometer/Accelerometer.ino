@@ -1,56 +1,57 @@
-#include <Wire.h>
+#include "I2Cdev.h"
+#include "MPU6050.h"
+#include "Ping.h"
+#include "ArduinoJson.h"
 
-long accelX, accelY, accelZ;
-float gForceX, gForceY, gForceZ;
+#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+    #include "Wire.h"
+#endif
+
+#define TRIGGER 10
+#define ECHO 9
+
+MPU6050 accelgyro;
+Ping pingsensor(TRIGGER,ECHO);
+
+int16_t ax, ay, az;
+int16_t gx, gy, gz;
+const int gyroScale = 180;
 
 void setup() {
-  Serial.begin(9600);
-  Wire.begin();
-  setupMPU();
-}
+    #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+        Wire.begin();
+    #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+        Fastwire::setup(400, true);
+    #endif
 
+    Serial.begin(38400);
+    accelgyro.initialize();
+    pingsensor.init();
+}
 
 void loop() {
-  recordAccelRegisters();
-  printData();
-  delay(100);
+    accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    dividebyscale();
+    sendJSON();
 }
 
-void setupMPU(){
-  Wire.beginTransmission(0b1101000); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
-  Wire.write(0x6B); //Accessing the register 6B - Power Management (Sec. 4.28)
-  Wire.write(0b00000000); //Setting SLEEP register to 0. (Required; see Note on p. 9)
-  Wire.endTransmission();  
-  Wire.beginTransmission(0b1101000); //I2C address of the MPU
-  Wire.write(0x1C); //Accessing the register 1C - Acccelerometer Configuration (Sec. 4.5) 
-  Wire.write(0b00000000); //Setting the accel to +/- 2g
-  Wire.endTransmission(); 
+void dividebyscale() {
+  ax /= gyroScale;
+  ay /= gyroScale;
+  az /= gyroScale;
 }
 
-void recordAccelRegisters() {
-  Wire.beginTransmission(0b1101000); //I2C address of the MPU
-  Wire.write(0x3B); //Starting register for Accel Readings
-  Wire.endTransmission();
-  Wire.requestFrom(0b1101000,6); //Request Accel Registers (3B - 40)
-  while(Wire.available() < 6);
-  accelX = Wire.read()<<8|Wire.read(); //Store first two bytes into accelX
-  accelY = Wire.read()<<8|Wire.read(); //Store middle two bytes into accelY
-  accelZ = Wire.read()<<8|Wire.read(); //Store last two bytes into accelZ
-  processAccelData();
-}
 
-void processAccelData(){
-  gForceX = accelX / 16384.0;
-  gForceY = accelY / 16384.0; 
-  gForceZ = accelZ / 16384.0;
-}
+void sendJSON() {
+   DynamicJsonBuffer jBuffer;
+   JsonObject& root = jBuffer.createObject();
+   root["Distance"] = pingsensor.distanceCalc();
 
-void printData() {
-  Serial.print(" Accel (g)");
-  Serial.print(" X=");
-  Serial.print(gForceX);
-  Serial.print(" Y=");
-  Serial.print(gForceY);
-  Serial.print(" Z=");
-  Serial.println(gForceZ);
+   JsonArray& accelData = root.createNestedArray("Degrees");
+   accelData.add(ax);
+   accelData.add(ay);
+   accelData.add(az);
+
+   root.printTo(Serial);
+   Serial.println();
 }
