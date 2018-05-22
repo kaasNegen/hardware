@@ -7,11 +7,20 @@
     #include "Wire.h"
 #endif
 
-#define TRIGGER 10
-#define ECHO 9
+#define TRIGGER_LEFT 10
+#define ECHO_LEFT 9
+#define TRIGGER_RIGHT 8
+#define ECHO_RIGHT 7
+#define TRIGGER_FRONT 6
+#define ECHO_FRONT 5
+#define TRIGGER_DOWN 4
+#define ECHO_DOWN 3
 
 MPU6050 accelgyro;
-Ping pingsensor(TRIGGER,ECHO);
+Ping pingLeft(TRIGGER_LEFT,ECHO_LEFT);
+Ping pingRight(TRIGGER_RIGHT,ECHO_RIGHT);
+Ping pingFront(TRIGGER_FRONT,ECHO_FRONT);
+Ping pingDown(TRIGGER_DOWN,ECHO_DOWN);
 
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
@@ -41,11 +50,14 @@ void dividebyscale() {
   az /= gyroScale;
 }
 
-
 void sendJSON() {
    DynamicJsonBuffer jBuffer;
    JsonObject& root = jBuffer.createObject();
-   root["Distance"] = pingsensor.distanceCalc();
+   JsonArray& pingData = root.createNestedArray("Distance");
+   pingData.add(pingLeft.distanceCalc();
+   pingData.add(pingRight.distanceCalc();
+   pingData.add(pingFront.distanceCalc();
+   pingData.add(pingDown.distanceCalc();
 
    JsonArray& accelData = root.createNestedArray("Degrees");
    accelData.add(ax);
