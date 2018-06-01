@@ -14,7 +14,7 @@ void Ping::init() {
 int Ping::distanceCalc() {
   startTrigger();        
   duration = pulseIn(_echoPin, HIGH);
-  distance = duration*0.034/2;
+  distance = duration*0.017;
   return distance;
 }
 

@@ -10,17 +10,20 @@
 
 #define TRIGGER_FRONT 3
 #define ECHO_FRONT 4
+
 #define TRIGGER_LEFT 5
 #define ECHO_LEFT 6
+
 #define TRIGGER_RIGHT 7
 #define ECHO_RIGHT 8
+
 #define TRIGGER_DOWN 9
 #define ECHO_DOWN 10
 
 
 MPU6050 accelgyro;
-Ping sensor_front(TRIGGER_RIGHT,ECHO_RIGHT);
-Ping sensor_left(TRIGGER_RIGHT,ECHO_RIGHT);
+Ping sensor_front(TRIGGER_FRONT,ECHO_FRONT);
+Ping sensor_left(TRIGGER_LEFT,ECHO_LEFT);
 Ping sensor_right(TRIGGER_RIGHT,ECHO_RIGHT);
 Ping sensor_down(TRIGGER_DOWN,ECHO_DOWN);
 
@@ -34,17 +37,20 @@ last_read_time,last_x_angle,last_y_angle,last_z_angle,alpha,angle_x,angle_y;
 double dt;
 
 
-void setup() {
+void setup() { 
   #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
     Wire.begin();
   #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
     Fastwire::setup(400, true);
   #endif
 
-   Serial.begin(19200);
+   Serial.begin(9600);
    accelgyro.initialize();
    set_last_read_angle_data(millis(), 0, 0, 0);
-   pingsensor.init();  
+   sensor_front.init();  
+   sensor_left.init();  
+   sensor_right.init();  
+   sensor_down.init();  
 }
 
 
@@ -84,8 +90,8 @@ void set_last_read_angle_data(unsigned long time, float x, float y, float z) {
 void sendJSON() {
   DynamicJsonBuffer jBuffer;
   JsonObject& root = jBuffer.createObject();
-  JsonArray& accelData = root.createNestedArray("degrees");
   JsonArray& distData = root.createNestedArray("distance");
+  JsonArray& accelData = root.createNestedArray("degrees");
   accelData.add(angle_x);
   accelData.add(angle_y);
   distData.add(sensor_front.distanceCalc());
